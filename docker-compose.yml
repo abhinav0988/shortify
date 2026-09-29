@@ -1,0 +1,85 @@
+name: shortify
+
+services:
+  mongo:
+    image: mongo:7
+    ports:
+      - "27017:27017"
+    healthcheck:
+      test: ["CMD", "mongosh", "--quiet", "--eval", "db.adminCommand('ping')"]
+      interval: 5s
+      timeout: 5s
+      retries: 10
+      start_period: 10s
+
+  redis:
+    image: redis:7-alpine
+    ports:
+      - "6379:6379"
+    healthcheck:
+      test: ["CMD", "redis-cli", "ping"]
+      interval: 5s
+      timeout: 3s
+      retries: 10
+
+  api:
+    build:
+      context: .
+      dockerfile: apps/api/Dockerfile
+    ports:
+      - "8080:8080"
+    environment:
+      NODE_ENV: development
+      HOST: 0.0.0.0
+      PORT: "8080"
+      MONGODB_URI: mongodb://mongo:27017/shortify
+      REDIS_URL: redis://redis:6379
+      LOG_LEVEL: info
+      PUBLIC_BASE_URL: ${PUBLIC_BASE_URL:-http://localhost:8080}
+      CORS_ORIGIN: ${CORS_ORIGIN:-http://localhost:3000}
+      JWT_SECRET: ${JWT_SECRET:-dev-only-change-me-not-for-production}
+      ANALYTICS_IP_SALT: ${ANALYTICS_IP_SALT:-dev-only-analytics-salt}
+      JWT_EXPIRES_IN: ${JWT_EXPIRES_IN:-1d}
+      REDIRECT_CACHE_TTL_SECONDS: ${REDIRECT_CACHE_TTL_SECONDS:-300}
+      AUTH_REGISTER_RATE_LIMIT: ${AUTH_REGISTER_RATE_LIMIT:-5}
+      AUTH_REGISTER_RATE_WINDOW_SECONDS: ${AUTH_REGISTER_RATE_WINDOW_SECONDS:-60}
+      AUTH_LOGIN_RATE_LIMIT: ${AUTH_LOGIN_RATE_LIMIT:-10}
+      AUTH_LOGIN_RATE_WINDOW_SECONDS: ${AUTH_LOGIN_RATE_WINDOW_SECONDS:-60}
+      LINK_CREATE_RATE_LIMIT: ${LINK_CREATE_RATE_LIMIT:-10}
+      LINK_CREATE_RATE_WINDOW_SECONDS: ${LINK_CREATE_RATE_WINDOW_SECONDS:-60}
+    depends_on:
+      mongo:
+        condition: service_healthy
+      redis:
+        condition: service_healthy
+    healthcheck:
+      test:
+        [
+          "CMD",
+          "node",
+          "-e",
+          "fetch('http://127.0.0.1:8080/api/health/ready').then((response) => process.exit(response.ok ? 0 : 1)).catch(() => process.exit(1))",
+        ]
+      interval: 10s
+      timeout: 5s
+      retries: 10
+      start_period: 15s
+
+  web:
+    build:
+      context: .
+      dockerfile: apps/web/Dockerfile
+      args:
+        VITE_API_URL: ${VITE_API_URL:-http://localhost:8080}
+        VITE_API_BASE_URL: ${VITE_API_BASE_URL:-http://localhost:8080}
+        VITE_SHORT_URL_ORIGIN: ${VITE_SHORT_URL_ORIGIN:-http://localhost:8080}
+    ports:
+      - "3000:80"
+    depends_on:
+      - api
+    healthcheck:
+      test: ["CMD", "wget", "-qO-", "http://127.0.0.1/healthz"]
+      interval: 10s
+      timeout: 3s
+      retries: 5
+      start_period: 5s

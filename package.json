@@ -1,0 +1,21 @@
+{
+  "name": "shortify",
+  "version": "1.0.0",
+  "description": "Full-stack URL shortener and click analytics platform.",
+  "private": true,
+  "engines": {
+    "node": ">=22"
+  },
+  "workspaces": [
+    "apps/*",
+    "packages/*"
+  ],
+  "scripts": {
+    "dev": "npm run build --workspace=@shortify/shared && npm run dev --workspace=@shortify/api",
+    "dev:web": "npm run dev --workspace=@shortify/web",
+    "build": "npm run build --workspace=@shortify/shared && npm run build --workspace=@shortify/api && npm run build --workspace=@shortify/web",
+    "typecheck": "npm run build --workspace=@shortify/shared && npm run typecheck --workspace=@shortify/api && npm run typecheck --workspace=@shortify/web",
+    "test": "npm test --workspace=@shortify/api && npm test --workspace=@shortify/web",
+    "start": "npm run start --workspace=@shortify/api"
+  }
+}
