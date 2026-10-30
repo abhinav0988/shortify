@@ -1,3 +1,4 @@
+[![CI](https://github.com/abhinav0988/shortify/actions/workflows/ci.yml/badge.svg)](https://github.com/abhinav0988/shortify/actions/workflows/ci.yml)
 # 🔗 Shortify – URL Shortener & Analytics Platform
 
 **A full-stack URL shortener demonstrating backend engineering, API design, caching strategies, rate limiting, and analytics.**
